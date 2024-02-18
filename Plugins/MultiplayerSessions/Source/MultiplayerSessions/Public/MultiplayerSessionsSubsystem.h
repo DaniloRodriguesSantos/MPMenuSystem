@@ -18,7 +18,7 @@ public:
 	UMultiplayerSessionsSubsystem();
 
 	//
-	// To handle session functionality. The Menu class will call these
+	// To handle session functionality. The MenuBase class will call these
 	//
 	void CreateSession(int32 NumPublicConnections, FString MatchType);
 	void FindSessions(int32 MaxSearchResults);
