@@ -34,7 +34,8 @@ protected:
 	void OnStartSession(bool bWasSuccessful);
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup(int32 InNumPublicConnections = 4, FString InMatchType = FString(TEXT("FreeForAll")));
+	void MenuSetup(int32 InNumPublicConnections = 4, FString InMatchType = FString(TEXT("FreeForAll")),
+		FString InPathToLobby = FString(TEXT("/Game/ThirdPerson/Maps/Lobby")));
 
 private:
 	UPROPERTY(meta = (BindWidget))
@@ -56,4 +57,5 @@ private:
 
 	int32 numPublicConnections{4};
 	FString matchType{TEXT("FreeForAll")};
+	FString pathToLobby{TEXT("")};
 };

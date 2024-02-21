@@ -42,14 +42,14 @@ void UMenuBase::OnCreateSession(bool bWasSuccessful)
 				-1,
 				15.f,
 				FColor::Yellow,
-				FString(TEXT("Session crated successfully."))
+				FString(TEXT("Session created successfully."))
 			);
 		}
 
 		UWorld* world = GetWorld();
 		if(world)
 		{
-			world->ServerTravel("/Game/ThirdPerson/Maps/Lobby?listen");
+			world->ServerTravel(pathToLobby);
 		}
 	}
 	else
@@ -111,10 +111,11 @@ void UMenuBase::OnStartSession(bool bWasSuccessful)
 {
 }
 
-void UMenuBase::MenuSetup(int32 InNumPublicConnections, FString InMatchType)
+void UMenuBase::MenuSetup(int32 InNumPublicConnections, FString InMatchType, FString InPathToLobby)
 {
 	numPublicConnections = InNumPublicConnections;
 	matchType = InMatchType;
+	pathToLobby = FString::Printf(TEXT("%s?listen"), *InPathToLobby);
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	SetIsFocusable(true);
