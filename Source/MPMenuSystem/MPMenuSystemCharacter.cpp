@@ -18,10 +18,7 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 //////////////////////////////////////////////////////////////////////////
 // AMPMenuSystemCharacter
 
-AMPMenuSystemCharacter::AMPMenuSystemCharacter():
-	CreateSessionCompleteDelegate(FOnCreateSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnCreateSessionComplete)),
-	FindSessionsCompleteDelegate(FOnFindSessionsCompleteDelegate::CreateUObject(this, &ThisClass::OnFindSessionsComplete)),
-	JoinSessionCompleteDelegate(FOnJoinSessionCompleteDelegate::CreateUObject(this, &ThisClass::OnJoinSessionComplete))
+AMPMenuSystemCharacter::AMPMenuSystemCharacter()
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -58,21 +55,7 @@ AMPMenuSystemCharacter::AMPMenuSystemCharacter():
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
-	IOnlineSubsystem* onlineSubsystem = IOnlineSubsystem::Get();
-	if(onlineSubsystem)
-	{
-		OnlineSessionInterface = onlineSubsystem->GetSessionInterface();
-
-		if(GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Blue,
-				FString::Printf(TEXT("Found subsystem %s"), *onlineSubsystem->GetSubsystemName().ToString())
-				);
-		}
-	}
+	
 }
 
 void AMPMenuSystemCharacter::BeginPlay()
@@ -86,158 +69,6 @@ void AMPMenuSystemCharacter::BeginPlay()
 		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
 		{
 			Subsystem->AddMappingContext(DefaultMappingContext, 0);
-		}
-	}
-}
-
-void AMPMenuSystemCharacter::CreateGameSession()
-{
-	// Called when pressing the "1" key
-	if(!OnlineSessionInterface.IsValid())
-	{
-		return;
-	}
-
-	FNamedOnlineSession* ExistingSession = OnlineSessionInterface->GetNamedSession(NAME_GameSession);
-	if(ExistingSession != nullptr)
-	{
-		OnlineSessionInterface->DestroySession(NAME_GameSession);
-	}
-
-	OnlineSessionInterface->AddOnCreateSessionCompleteDelegate_Handle(CreateSessionCompleteDelegate);
-	
-	TSharedPtr<FOnlineSessionSettings> SessionSettings = MakeShareable(new FOnlineSessionSettings());
-	SessionSettings->bIsLANMatch = false;
-	SessionSettings->NumPublicConnections = 4;
-	SessionSettings->bAllowJoinInProgress = true;
-	SessionSettings->bAllowJoinViaPresence = true;
-	SessionSettings->bShouldAdvertise = true;
-	SessionSettings->bUsesPresence = true;
-	SessionSettings->bUseLobbiesIfAvailable = true;
-	SessionSettings->Set(FName("MatchType"), FString("FreeForAll"), EOnlineDataAdvertisementType::ViaOnlineServiceAndPing);
-	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	OnlineSessionInterface->CreateSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, *SessionSettings);
-}
-
-void AMPMenuSystemCharacter::JoinGameSession()
-{
-	// Find game sessions
-	if(!OnlineSessionInterface.IsValid())
-	{
-		return;
-	}
-
-	OnlineSessionInterface->AddOnFindSessionsCompleteDelegate_Handle(FindSessionsCompleteDelegate);
-	
-	SessionSearch = MakeShareable(new FOnlineSessionSearch());
-	SessionSearch->MaxSearchResults = 10000;
-	SessionSearch->bIsLanQuery = false;
-	SessionSearch->QuerySettings.Set(SEARCH_PRESENCE, true, EOnlineComparisonOp::Equals);
-	
-	const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-	OnlineSessionInterface->FindSessions(*LocalPlayer->GetPreferredUniqueNetId(), SessionSearch.ToSharedRef());
-}
-
-void AMPMenuSystemCharacter::OnCreateSessionComplete(FName SessionName, bool bWasSuccessful)
-{
-	if(bWasSuccessful)
-	{
-		if(GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Blue,
-				FString::Printf(TEXT("Created session: %s"), *SessionName.ToString())
-			);
-		}
-
-		UWorld* world = GetWorld();
-		if(world)
-		{
-			world->ServerTravel(FString("/Game/ThirdPerson/Maps/Lobby?listen"));
-		}
-	}
-	else
-	{
-		if(GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Red,
-				FString("Failed to create session!")
-			);
-		}
-	}
-}
-
-void AMPMenuSystemCharacter::OnFindSessionsComplete(bool bWasSuccessful)
-{
-	if(!OnlineSessionInterface.IsValid())
-	{
-		return;
-	}
-	for (FOnlineSessionSearchResult result : SessionSearch->SearchResults)
-	{
-		FString id = result.GetSessionIdStr();
-		FString user = result.Session.OwningUserName;
-		FString matchType;
-		result.Session.SessionSettings.Get(FName("MatchType"), matchType);
-		if(GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Cyan,
-				FString::Printf(TEXT("Id: %s, User: %s"), *id, *user)
-			);
-		}
-
-		if(matchType == FString("FreeForAll"))
-		{
-			if(GEngine)
-			{
-				GEngine->AddOnScreenDebugMessage(
-					-1,
-					15.f,
-					FColor::Cyan,
-					FString::Printf(TEXT("Joining macth type: %s"), *matchType)
-				);
-			}
-
-			OnlineSessionInterface->AddOnJoinSessionCompleteDelegate_Handle(JoinSessionCompleteDelegate);
-
-			const ULocalPlayer* LocalPlayer = GetWorld()->GetFirstLocalPlayerFromController();
-			OnlineSessionInterface->JoinSession(*LocalPlayer->GetPreferredUniqueNetId(), NAME_GameSession, result);
-		}
-	}
-}
-
-void AMPMenuSystemCharacter::OnJoinSessionComplete(FName SessionName, EOnJoinSessionCompleteResult::Type Result)
-{
-	if(!OnlineSessionInterface.IsValid())
-	{
-		return;
-	}
-
-	FString address;
-	if(OnlineSessionInterface->GetResolvedConnectString(NAME_GameSession, address))
-	{
-		if(GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(
-				-1,
-				15.f,
-				FColor::Yellow,
-				FString::Printf(TEXT("Connect string: %s"), *address)
-			);
-		}
-
-		APlayerController* playerController = GetGameInstance()->GetFirstLocalPlayerController();
-		if(playerController)
-		{
-			playerController->ClientTravel(address, TRAVEL_Absolute);
 		}
 	}
 }
