@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Interfaces/OnlineSessionInterface.h"
 #include "MenuBase.generated.h"
 
 class UButton;
@@ -18,10 +19,22 @@ class MULTIPLAYERSESSIONS_API UMenuBase : public UUserWidget
 
 protected:
 	virtual bool Initialize() override;
-	
+	virtual void NativeDestruct() override;
+
+	//
+	// Callbacks for the custom delegates on the MultiplayerSessionsSubsystem
+	//
+	UFUNCTION()
+	void OnCreateSession(bool bWasSuccessful);
+	void OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful);
+	void OnJoinSession(EOnJoinSessionCompleteResult::Type Result);
+	UFUNCTION()
+	void OnDestroySession(bool bWasSuccessful);
+	UFUNCTION()
+	void OnStartSession(bool bWasSuccessful);
 public:
 	UFUNCTION(BlueprintCallable)
-	void MenuSetup();
+	void MenuSetup(int32 InNumPublicConnections = 4, FString InMatchType = FString(TEXT("FreeForAll")));
 
 private:
 	UPROPERTY(meta = (BindWidget))
@@ -36,6 +49,11 @@ private:
 	UFUNCTION()
 	void JoinButtonClicked();
 
+	void MenuTeardDown();
+
 	// The subsystem designed to handle all online session functionality
 	class UMultiplayerSessionsSubsystem* multiplayerSessionsSubsystem;
+
+	int32 numPublicConnections{4};
+	FString matchType{TEXT("FreeForAll")};
 };

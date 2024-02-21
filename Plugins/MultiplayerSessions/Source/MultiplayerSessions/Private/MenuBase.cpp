@@ -25,8 +25,66 @@ bool UMenuBase::Initialize()
 	return true;
 }
 
-void UMenuBase::MenuSetup()
+void UMenuBase::NativeDestruct()
 {
+	MenuTeardDown();
+	Super::NativeDestruct();
+}
+
+void UMenuBase::OnCreateSession(bool bWasSuccessful)
+{
+	if(bWasSuccessful)
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Yellow,
+				FString(TEXT("Session crated successfully."))
+			);
+		}
+
+		UWorld* world = GetWorld();
+		if(world)
+		{
+			world->ServerTravel("/Game/ThirdPerson/Maps/Lobby?listen");
+		}
+	}
+	else
+	{
+		if(GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(
+				-1,
+				15.f,
+				FColor::Red,
+				FString(TEXT("Failed to create session!"))
+			);
+		}
+	}
+}
+
+void UMenuBase::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
+{
+}
+
+void UMenuBase::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
+{
+}
+
+void UMenuBase::OnDestroySession(bool bWasSuccessful)
+{
+}
+
+void UMenuBase::OnStartSession(bool bWasSuccessful)
+{
+}
+
+void UMenuBase::MenuSetup(int32 InNumPublicConnections, FString InMatchType)
+{
+	numPublicConnections = InNumPublicConnections;
+	matchType = InMatchType;
 	AddToViewport();
 	SetVisibility(ESlateVisibility::Visible);
 	SetIsFocusable(true);
@@ -50,23 +108,22 @@ void UMenuBase::MenuSetup()
 	{
 		multiplayerSessionsSubsystem = gameInstance->GetSubsystem<UMultiplayerSessionsSubsystem>();
 	}
+
+	if (multiplayerSessionsSubsystem)
+	{
+		multiplayerSessionsSubsystem->MultiplayerOnCreateSessionComplete.AddDynamic(this, &ThisClass::OnCreateSession);
+		multiplayerSessionsSubsystem->MultiplayerOnFindSessionComplete.AddUObject(this, &ThisClass::OnFindSession);
+		multiplayerSessionsSubsystem->MultiplayerOnJoinSessionComplete.AddUObject(this, &ThisClass::OnJoinSession);
+		multiplayerSessionsSubsystem->MultiplayerOnDestroySessionComplete.AddDynamic(this, &ThisClass::OnDestroySession);
+		multiplayerSessionsSubsystem->MultiplayerOnStartSessionComplete.AddDynamic(this, &ThisClass::OnStartSession);
+	}
 }
 
 void UMenuBase::HostButtonClicked()
 {
-	if(GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString(TEXT("Host Button Clicked."))
-		);
-	}
-
 	if(multiplayerSessionsSubsystem)
 	{
-		multiplayerSessionsSubsystem->CreateSession(4, FString("FreeForAll"));
+		multiplayerSessionsSubsystem->CreateSession(numPublicConnections, matchType);
 	}
 }
 
@@ -80,5 +137,21 @@ void UMenuBase::JoinButtonClicked()
 			FColor::Yellow,
 			FString(TEXT("Join Button Clicked."))
 		);
+	}
+}
+
+void UMenuBase::MenuTeardDown()
+{
+	RemoveFromParent();
+	UWorld* world = GetWorld();
+	if(world)
+	{
+		APlayerController* playerController = world->GetFirstPlayerController();
+		if(playerController)
+		{
+			FInputModeGameOnly inputModeData;
+			playerController->SetInputMode(inputModeData);
+			playerController->SetShowMouseCursor(false);
+		}
 	}
 }
