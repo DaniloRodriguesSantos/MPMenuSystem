@@ -61,19 +61,24 @@ protected:
 private:
 	IOnlineSessionPtr sessionInterface;
 	TSharedPtr<FOnlineSessionSettings> lastSessionSettings;
+	TSharedPtr<FOnlineSessionSearch> lastSessionSearch;
 
 	//
 	// To add to the Online Session Interface delegate list
 	// This class' internal callbacks will be bound to these
 	//
-	FOnCreateSessionCompleteDelegate CreateSessionCompleteDelegate;
-	FDelegateHandle CreateSessionCompleteDelegateHandle;
-	FOnFindSessionsCompleteDelegate FindSessionsCompleteDelegate;
-	FDelegateHandle FindSessionCompleteDelegateHandle;
-	FOnJoinSessionCompleteDelegate JoinSessionCompleteDelegate;
-	FDelegateHandle JoinSessionCompleteDelegateHandle;
-	FOnDestroySessionCompleteDelegate DestroySessionCompleteDelegate;
-	FDelegateHandle DestroySessionCompleteDelegateHandle;
-	FOnStartSessionCompleteDelegate StartSessionCompleteDelegate;
-	FDelegateHandle StartSessionCompleteDelegateHandle;
+	FOnCreateSessionCompleteDelegate createSessionCompleteDelegate;
+	FDelegateHandle createSessionCompleteDelegateHandle;
+	FOnFindSessionsCompleteDelegate findSessionsCompleteDelegate;
+	FDelegateHandle findSessionCompleteDelegateHandle;
+	FOnJoinSessionCompleteDelegate joinSessionCompleteDelegate;
+	FDelegateHandle joinSessionCompleteDelegateHandle;
+	FOnDestroySessionCompleteDelegate destroySessionCompleteDelegate;
+	FDelegateHandle destroySessionCompleteDelegateHandle;
+	FOnStartSessionCompleteDelegate startSessionCompleteDelegate;
+	FDelegateHandle startSessionCompleteDelegateHandle;
+
+public:
+	// Accessors
+	IOnlineSessionPtr GetSessionInterface() const { return sessionInterface; }
 };

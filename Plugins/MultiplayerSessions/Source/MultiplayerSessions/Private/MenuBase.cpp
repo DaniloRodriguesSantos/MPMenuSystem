@@ -3,6 +3,7 @@
 
 #include "MenuBase.h"
 #include "MultiplayerSessionsSubsystem.h"
+#include "OnlineSessionSettings.h"
 #include "Components/Button.h"
 
 bool UMenuBase::Initialize()
@@ -67,10 +68,39 @@ void UMenuBase::OnCreateSession(bool bWasSuccessful)
 
 void UMenuBase::OnFindSession(const TArray<FOnlineSessionSearchResult>& SessionResults, bool bWasSuccessful)
 {
+	if(multiplayerSessionsSubsystem != nullptr)
+	{
+		return;
+	}
+	
+	for (FOnlineSessionSearchResult result : SessionResults)
+	{
+		FString SettingsValue;
+		result.Session.SessionSettings.Get(FName("MatchType"), SettingsValue);
+		if(SettingsValue == matchType)
+		{
+			multiplayerSessionsSubsystem->JoinSession(result);
+			return;
+		}
+	}
 }
 
 void UMenuBase::OnJoinSession(EOnJoinSessionCompleteResult::Type Result)
 {
+	if(multiplayerSessionsSubsystem)
+	{
+		if(multiplayerSessionsSubsystem->GetSessionInterface().IsValid())
+		{
+			FString address;
+			multiplayerSessionsSubsystem->GetSessionInterface()->GetResolvedConnectString(NAME_GameSession, address);
+
+			APlayerController* playerController = GetGameInstance()->GetFirstLocalPlayerController();
+			if(playerController)
+			{
+				playerController->ClientTravel(address, TRAVEL_Absolute);
+			}
+		}
+	}
 }
 
 void UMenuBase::OnDestroySession(bool bWasSuccessful)
@@ -129,14 +159,9 @@ void UMenuBase::HostButtonClicked()
 
 void UMenuBase::JoinButtonClicked()
 {
-	if(GEngine)
+	if(multiplayerSessionsSubsystem)
 	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			15.f,
-			FColor::Yellow,
-			FString(TEXT("Join Button Clicked."))
-		);
+		multiplayerSessionsSubsystem->FindSessions(10000);
 	}
 }
 
